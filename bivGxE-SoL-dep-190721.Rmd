@@ -1,0 +1,537 @@
+---
+title: "Bivariate GxE: Depression moderated by standard of living  (CoTASS)"
+author: "IB"
+date: "19/07/2021"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+    theme: cosmo
+---
+
+```{css, echo = F}
+
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 600px;
+}
+
+```
+
+```{css, echo=F}
+
+.scroll-100 {
+  max-height: 600px;
+  overflow-y: auto;
+  background-color: inherit;
+}
+```
+
+# Load data  
+```{r "prepare data", include = T, echo = T, collapse = T, eval = T}
+
+knitr::opts_chunk$set(echo = T, comment = NA,  prompt = F,  cache = F)
+
+remove(list = ls())
+
+# Packages
+require(OpenMx)
+require(Hmisc)
+require(psych)
+#require(plyr)
+
+data = read.table(file = "~/OneDrive - King's College London/PhD/CoTASS/Dta/150621/dtw_wide_dep-SES.dat", header=T, sep = "\t", stringsAsFactors = F)
+
+#psych::describe(data)
+
+```
+
+# Create data groups 
+```{r "create data groups", include = T, echo = T, collapse = T, eval = T}
+
+## Prepare data
+
+# Create new variable to be used as definition variable (i.e. moderator)
+data$revSoLm1 <- data$revSoL_rS1
+data$revSoLm2 <- data$revSoL_rS2
+describe(data$revSoLm1)
+describe(data$revSoLm2)
+
+nv <- 2		# number of variables per twin
+ntv <- nv*2	# number of variables per pair
+
+# Select Variables for Analysis
+Vars <- c('revSoL_rS','depTS')
+selVars <- paste(Vars,c(rep(1,nv),rep(2,nv)),sep="")
+selVarsS <- c('revSoL_rS1','depTS1')
+defVars <- c('revSoLm1','revSoLm2')
+
+# Drop cases with missingness on the definition variables
+
+#mzData <-data[c(data$c1c2_sexzyg==1 | data$c1c2_sexzyg==3) & !is.na(data$revSoLm1) & !is.na(data$revSoLm2), c(selVars, c('revSoLm1','revSoLm2'))]
+#dzData <-data[c(data$c1c2_sexzyg==2 | data$c1c2_sexzyg==4 | data$c1c2_sexzyg == 5) & !is.na(data$revSoLm1) & !is.na(data$revSoLm2), c(selVars, c('revSoLm1','revSoLm2'))]
+#sData <-data[data$c1c2_sexzyg==6 & !is.na(data$revSoL_rS1), c(selVarsS, 'revSoLm1')]
+
+mzmData	<-data[data$c1c2_sexzyg==1 & !is.na(data$revSoL_rS1) & !is.na(data$revSoL_rS2), c(selVars, c('revSoLm1','revSoLm2'))]
+dzmData	<-data[data$c1c2_sexzyg==2 & !is.na(data$revSoL_rS1) & !is.na(data$revSoL_rS2), c(selVars, c('revSoLm1','revSoLm2'))]
+mzfData	<-data[data$c1c2_sexzyg==3 & !is.na(data$revSoL_rS1) & !is.na(data$revSoL_rS2), c(selVars, c('revSoLm1','revSoLm2'))]
+dzfData	<-data[data$c1c2_sexzyg==4 & !is.na(data$revSoL_rS1) & !is.na(data$revSoL_rS2), c(selVars, c('revSoLm1','revSoLm2'))]
+dzoData	<-data[data$c1c2_sexzyg==5 & !is.na(data$revSoL_rS1) & !is.na(data$revSoL_rS2), c(selVars, c('revSoLm1','revSoLm2'))]
+smData	<-data[data$c1c2_sexzyg==6 & data$sex1==0 & !is.na(data$revSoL_rS1), c(selVarsS, 'revSoLm1')] # males
+sfData	<-data[data$c1c2_sexzyg==6 & data$sex1==1 & !is.na(data$revSoL_rS1), c(selVarsS, 'revSoLm1')] # females
+
+#describe(mzData)
+#describe(dzData)
+#describe(sData)
+
+psych::describe(mzmData)
+psych::describe(dzmData)
+psych::describe(mzfData)
+psych::describe(dzfData)
+psych::describe(dzoData)
+psych::describe(smData)
+psych::describe(sfData)
+
+```
+
+```{r "descriptives", include = T, echo = T, collapse = T, eval = T}
+
+# Generate Descriptive Statistics
+colMeans(mzmData,na.rm=TRUE)
+colMeans(mzfData,na.rm=TRUE)
+colMeans(dzmData,na.rm=TRUE)
+colMeans(dzfData,na.rm=TRUE)
+colMeans(dzoData,na.rm=TRUE)
+colMeans(smData,na.rm=TRUE)
+colMeans(sfData,na.rm=TRUE)
+
+cov(mzmData,use="complete")
+cov(dzmData,use="complete")
+cov(mzfData,use="complete")
+cov(dzfData,use="complete")
+cov(dzoData,use="complete")
+
+cor(mzmData,use="complete")
+cor(dzmData,use="complete")
+cor(mzfData,use="complete")
+cor(dzfData,use="complete")
+cor(dzoData,use="complete")
+
+sqrt(cov(mzmData, use="complete")/5)
+sqrt(cov(dzmData, use="complete")/5)
+sqrt(cov(mzfData, use="complete")/5)
+sqrt(cov(dzfData, use="complete")/5)
+sqrt(cov(dzoData, use="complete")/5)
+
+```
+
+# Bivariate GxE model 
+```{r "run GxE model - v1", include = T, echo = T, eval = T}
+
+# PREPARE MODEL -----------------------------------------------------------
+
+# Matrix for expected Means
+
+#meanG     <- mxMatrix(type="Full", nrow=1, ncol=ntv, free=TRUE, values=.01, label=c("m1","m2","m1","m2"), name="expMean") #m1 = SoL; m2 = depression (need both means for the objective objects for multiple groups (line 188) code to work)
+#meanS <- mxMatrix(type = "Full", nrow=1, ncol=2, free=TRUE, values=.01, label=c("m1","m2"), name="expMeanS") # singletons 
+
+MeanM		<-mxMatrix(type="Full", nrow=1, ncol=ntv, free=c(T,T,T,T), values=c(.01,.01,.01,.01), labels=c("mmSoL","mmDep","mmSoL","mmDep"), name="expMeanM")
+MeanF		<-mxMatrix(type="Full", nrow=1, ncol=ntv, free=c(T,T,T,T), values=c(.01,.01,.01,.01), labels=c("mfSoL","mfDep","mfSoL","mfDep"), name="expMeanF")
+MeanOS	<-mxMatrix(type="Full", nrow=1, ncol=ntv, free=c(T,T,T,T), values=c(.01,.01,.01,.01), labels=c("mmSoL","mmDep","mfSoL","mfDep"), name="expMeanOS")
+MeanMs	<-mxMatrix(type="Full", nrow=1, ncol=nv, free=c(T,T), values=c(.01,.01), labels=c("mmSoL","mmDep"), name="expMeanMs")
+MeanFs	<-mxMatrix(type="Full", nrow=1, ncol=nv, free=c(T,T), values=c(.01,.01), labels=c("mfSoL","mfDep"), name="expMeanFs")
+
+# Matrices declared to store a, c, and e Path Coefficients
+pathA     <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label=c("a11","a21","a22"), name="a") 
+pathC     <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label=c("c11","c21","c22"), name="c") 
+pathE     <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label=c("e11","e21","e22"), name="e") 
+
+# Matrices generated to hold A, C, and E computed Variance Components
+covA      <- mxAlgebra(expression=a %*% t(a), name="A")
+covC      <- mxAlgebra(expression=c %*% t(c), name="C") 
+covE      <- mxAlgebra(expression=e %*% t(e), name="E")
+
+# Algebra to compute total variances and standard deviations (diagonal only)
+covP      <- mxAlgebra(expression=A+C+E, name="V")
+matI      <- mxMatrix(type="Iden", nrow=nv, ncol=nv, name="I")
+invSD     <- mxAlgebra(expression=solve(sqrt(I*V)), name="iSD")
+
+# Algebras generated to create summary Table of Derived Variance Components
+rowVars   <- rep('vars',nv)
+colVars   <- rep(c('A','C','E','SA','SC','SE'),each=nv)
+estVars   <- mxAlgebra(expression=cbind(A,C,E,A/V,C/V,E/V), name="Vars", dimnames=list(rowVars,colVars))
+
+# Matrix for moderating/interacting variable
+defrevSoLm1   <- mxMatrix(type="Full", nrow=1, ncol=1, free=FALSE, labels=c("data.revSoLm1"), name="revSoLm1")
+defrevSoLm2   <- mxMatrix(type="Full", nrow=1, ncol=1, free=FALSE, labels=c("data.revSoLm2"), name="revSoLm2")
+
+# Matrices declared to store moderated a, c, and e Path Coefficients
+pathAm    <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=c(F,T,T), values=c(0,.01,.01), label=c("fix","am21","am22"), name="aMod") 
+pathCm    <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=c(F,T,T), values=c(0,.01,.01), label=c("fix","cm21","cm22"), name="cMod")
+pathEm    <- mxMatrix(type="Lower", nrow=nv, ncol=nv, free=c(F,T,T), values=c(0,.01,.01), label=c("fix","em21","em22"), name="eMod")
+
+# Matrices generated to hold moderated A, C, and E computed Variance Components
+varAm1    <- mxAlgebra(expression=(a+ revSoLm1%x%aMod) %*% t(a+ revSoLm1%x%aMod), name="Am1")
+varCm1    <- mxAlgebra(expression=(c+ revSoLm1%x%cMod) %*% t(c+ revSoLm1%x%cMod), name="Cm1")
+varEm1    <- mxAlgebra(expression=(e+ revSoLm1%x%eMod) %*% t(e+ revSoLm1%x%eMod), name="Em1")
+
+varAm2    <- mxAlgebra(expression=(a+ revSoLm2%x%aMod) %*% t(a+ revSoLm2%x%aMod), name="Am2")
+varCm2    <- mxAlgebra(expression=(c+ revSoLm2%x%cMod) %*% t(c+ revSoLm2%x%cMod), name="Cm2")
+varEm2    <- mxAlgebra(expression=(e+ revSoLm2%x%eMod) %*% t(e+ revSoLm2%x%eMod), name="Em2")
+
+covAm12   <- mxAlgebra(expression=(a+ revSoLm1%x%aMod) %*% t(a+ revSoLm2%x%aMod), name="Am12")
+covCm12   <- mxAlgebra(expression=(c+ revSoLm1%x%cMod) %*% t(c+ revSoLm2%x%cMod), name="Cm12")
+covAm21   <- mxAlgebra(expression=(a+ revSoLm2%x%aMod) %*% t(a+ revSoLm1%x%aMod), name="Am21")
+covCm21   <- mxAlgebra(expression=(c+ revSoLm2%x%cMod) %*% t(c+ revSoLm1%x%cMod), name="Cm21")
+
+# Algebra to compute total variances and standard deviations (diagonal only)
+covPm1    <- mxAlgebra(expression=Am1+Cm1+Em1, name="Vm1")
+covPm2    <- mxAlgebra(expression=Am2+Cm2+Em2, name="Vm2")
+
+# Algebra for expected Mean and Variance/Covariance Matrices in MZ & DZ twins
+#covMZm    <- mxAlgebra(expression= rbind(cbind(Vm1, Am12+Cm12), cbind(Am21+Cm21, Vm2)), name="expCovMZ")
+#covDZm    <- mxAlgebra(expression= rbind(cbind(Vm1, 0.5%x%Am12+Cm12), cbind(0.5%x%Am21+Cm21, Vm2)), name="expCovDZ")
+# Algebra to derive expected variance singletons
+#covS		<-mxAlgebra(((a+aMod*revSoLm1)*t(a+aMod*revSoLm1)) + ((c+cMod*revSoLm1)*t(c+cMod*revSoLm1)) + ((e+eMod*revSoLm1)*t(e+eMod*revSoLm1)), name="Vm1") # singletons 
+
+# Here we set up the scalar to multiply the Female Variance for both variables with a constant:
+# We do this for F-F pairs, for M-F pairs and for female singletons
+
+#ScalarF	 <-mxMatrix(type="Diag", nrow=2, ncol=2, free=c(T,T), values=c(.6,.6), label=c("dep1", "dep1"), name="ScF")	# F-F pairs
+#ScalarOS <-mxMatrix(type="Diag", nrow=2, ncol=2, free=c(F,T), values=c(1,.6), label=c("NA","dep1"), name="ScOS")	# M-F pairs
+#ScalarFs <-mxMatrix(type="Diag", nrow=1, ncol=1, free=T, values=.6, label="dep1", name="Scs")		# F singletons
+
+ScalarF		<- mxMatrix(type="Diag", nrow=4, ncol=4, free=c(T,T,T,T), values=c(.6,.6,.6,.6), label=c("dep1", "dep2", "dep1", "dep2"), name="ScF")	# F-F pairs
+ScalarOS	<- mxMatrix(type="Diag", nrow=4, ncol=4, free=c(F,F,T,T), values=c(1,1,.6,.6), label=c("NA","NA","dep1","dep2"), name="ScOS")	# M-F pairs
+ScalarFs	<- mxMatrix(type="Diag", nrow=2, ncol=2, free=c(T,T), values=c(.6,.6), label=c("dep1","dep2"), name="Scs")	# F singletons
+
+# Algebra for expected variance/covariance matrices 
+# We also add in the scalar we created here
+covMZM	<- mxAlgebra(expression=rbind(cbind(Vm1, Am12+Cm12), cbind(Am21+Cm21, Vm2)), name="expCovMZM")
+covDZM	<- mxAlgebra(expression=rbind(cbind(Vm1, 0.5%x%Am12+Cm12), cbind(0.5%x%Am21+Cm21, Vm2)), name="expCovDZM")
+
+#covMZF	<- mxAlgebra(expression=ScF%&%(rbind(cbind(Am+Cm+Em, Am+Cm), cbind(Am+Cm, Am+Cm+Em))), name="expCovMZF")
+covMZF	<- mxAlgebra(expression=ScF%&%(rbind(cbind(Vm1, Am12+Cm12), cbind(Am21+Cm21, Vm2))), name="expCovMZF")
+
+#covDZF	<- mxAlgebra(expression=ScF%&%(rbind(cbind(Am+Cm+Em, 0.5%x%Am+Cm), cbind(0.5%x%Am+Cm, Am+Cm+Em))), name="expCovDZF")
+#covDZOS <- mxAlgebra(expression=ScOS%&%(rbind(cbind(Am+Cm+Em, 0.5%x%Am+Cm), cbind(0.5%x%Am+Cm, Am+Cm+Em))), name="expCovDZOS") #!No Gcor & Ccor               
+covDZF	<- mxAlgebra(expression=ScF%&%(rbind(cbind(Vm1, 0.5%x%Am12+Cm12), cbind(0.5%x%Am21+Cm21, Vm2))), name="expCovDZF")
+covDZO <- mxAlgebra(expression=ScOS%&%(rbind(cbind(Vm1, 0.5%x%Am12+Cm12), cbind(0.5%x%Am21+Cm21, Vm2))), name="expCovDZO") #!No Gcor & Ccor               
+
+covMs	<- mxAlgebra(((a+aMod*revSoLm1)*t(a+aMod*revSoLm1)) + ((c+cMod*revSoLm1)*t(c+cMod*revSoLm1)) + ((e+eMod*revSoLm1)*t(e+eMod*revSoLm1)), name="Vm1")
+covFs	<- mxAlgebra(expression=Scs%&%((a+aMod*revSoLm1)*t(a+aMod*revSoLm1)) + ((c+cMod*revSoLm1)*t(c+cMod*revSoLm1)) + ((e+eMod*revSoLm1)*t(e+eMod*revSoLm1)), name="Vm1")
+
+# Data objects for Multiple Groups
+#dataMZ <-mxData(observed=mzData, type="raw")
+#dataDZ <-mxData(observed=dzData, type="raw")
+#dataS	<-mxData(observed=sData, type="raw")
+dataMZM <- mxData(observed=mzmData, type="raw")
+dataDZM <- mxData(observed=dzmData, type="raw")
+dataMZF <- mxData(observed=mzfData, type="raw")
+dataDZF <- mxData(observed=dzfData, type="raw")
+dataDZO <- mxData(observed=dzoData, type="raw")
+dataSM	<- mxData(observed=smData, type="raw")
+dataSF	<- mxData(observed=sfData, type="raw")
+
+# Objective objects for Multiple Groups
+#expMZ  <- mxExpectationNormal(covariance="expCovMZ", means="expMean", dimnames=selVars)
+#expDZ  <- mxExpectationNormal(covariance="expCovDZ", means="expMean", dimnames=selVars)
+#expS		<- mxExpectationNormal(covariance="Vm1", means="expMeanS", dimnames=selVarsS) # singletons 
+objMZM  <- mxExpectationNormal(covariance="expCovMZM", means="expMeanM", dimnames=selVars)
+objDZM  <- mxExpectationNormal(covariance="expCovDZM", means="expMeanM", dimnames=selVars)
+objMZF  <- mxExpectationNormal(covariance="expCovMZF", means="expMeanF", dimnames=selVars)
+objDZF  <- mxExpectationNormal(covariance="expCovDZF", means="expMeanF", dimnames=selVars)
+objDZO  <- mxExpectationNormal(covariance="expCovDZO", means="expMeanOS", dimnames=selVars)
+objSM		<- mxExpectationNormal(covariance="Vm1", means="expMeanMs", dimnames=selVarsS)
+objSF		<- mxExpectationNormal(covariance="Vm1", means="expMeanFs", dimnames=selVarsS)
+
+funML <- mxFitFunctionML()
+
+# Combine Groups
+
+#pars    <- list(pathA, pathC, pathE, pathAm, pathCm, pathEm, meanG, meanS, covA, covC, covE, covP, matI, invSD, estVars)
+#defs    <- list(defrevSoLm1, defrevSoLm2, varAm1, varCm1, varEm1, covPm1, varAm2, varCm2, varEm2, covPm2, covAm12, covCm12, covAm21, covCm21)
+#modelMZ <- mxModel(pars, defs, covMZm, dataMZ, expMZ, funML, name="MZ")
+#modelDZ <- mxModel(pars, defs, covDZm, dataDZ, expDZ, funML, name="DZ")
+#modelSs	<- mxModel(pars, defrevSoLm1, varAm1, varCm1, varEm1, covPm1, covS, dataS, expS, funML,name="Ss") # singletons   
+
+pars    <- list(pathA, pathC, pathE, pathAm, pathCm, pathEm, covA, covC, covE, covP, matI, invSD, estVars)
+defs    <- list(defrevSoLm1, defrevSoLm2, varAm1, varCm1, varEm1, covPm1, varAm2, varCm2, varEm2, covPm2, covAm12, covCm12, covAm21, covCm21)
+modelMZM <- mxModel(MeanM, MeanMs, pars, defs, covMZM, dataMZM, objMZM, funML, name="MZM")
+modelDZM <- mxModel(MeanM, MeanMs, pars, defs, covDZM, dataDZM, objDZM, funML, name="DZM")
+modelMZF <- mxModel(MeanF, MeanFs, ScalarF, pars, defs, covMZF, dataMZF, objMZF, funML, name="MZF")
+modelDZF <- mxModel(MeanF, MeanFs, ScalarF, pars, defs, covDZF, dataDZF, objDZF, funML, name="DZF")
+modelDZO <- mxModel(MeanM, MeanF, MeanOS, ScalarOS, pars, defs, covDZO, dataDZO, objDZO, funML, name="DZO")
+modelSM  <- mxModel(MeanMs, pars, defrevSoLm1, varAm1, varCm1, varEm1, covPm1, covMs, dataSM, objSM, funML, name="SM")
+modelSF  <- mxModel(MeanFs, ScalarFs, pars, defrevSoLm1, varAm1, varCm1, varEm1, covPm1, covFs, dataSF, objSF, funML, name="SF")
+
+multi <- mxFitFunctionMultigroup(c("MZM","DZM","MZF","DZF","DZO","SM","SF"))
+ci <-mxCI(c('MZM.a', 'MZM.c', 'MZM.e')) 
+cim <-mxCI(c('MZM.aMod', 'MZM.cMod', 'MZM.eMod')) 	
+ModAceModel <- mxModel("ModACE", pars, modelMZM, modelDZM, modelMZF, modelDZF, modelDZO, modelSM, modelSF, multi, ci, cim)
+
+# RUN MODELS -------------------------------------------------------------------
+
+# Run Moderated ACE model 
+#ModAceFit <- mxRun(ModAceModel, intervals =T)
+ModAceFit <- mxTryHard(ModAceModel, intervals = T, extraTries = 20)
+(ModAceSum <- summary(ModAceFit))#, verbose = T))
+#ModAceSum$parameters
+round(ModAceFit@output$estimate,4)
+round(ModAceFit$Vars@result,4)
+
+```
+
+# Submodels 
+```{r "submodels-1", include = T, echo = T, eval = T}
+
+### Sub model 1 - drop all moderator terms -------------------------------------
+
+NoModModel<-mxModel(ModAceFit, name="NoMod")
+NoModModel<-omxSetParameters(NoModModel, labels=c("am21","am22","cm21","cm22","em21","em22"), free=F, values=0)
+NoModFit <-mxTryHard(NoModModel, intervals=T)
+(NoModSumm <-summary(NoModFit))
+
+mxCompare(ModAceFit,NoModFit)
+
+```
+
+```{r "submodels-2", include = T, echo = T, eval = T}
+
+### Sub model 2 - drop a22, c22 and e22 moderator terms ------------------------
+
+subMod2<-mxModel(ModAceFit, name="subMod2")
+subMod2<-omxSetParameters(subMod2, labels=c("am22","cm22","em22"), free=F, values=0)
+subMod2Fit <-mxTryHard(subMod2, intervals=T)
+(subMod2Summ <-summary(subMod2Fit))
+
+### Sub model 3 - drop a21, c21 and e21 moderator terms ------------------------
+
+subMod3<-mxModel(ModAceFit, name="subMod3")
+subMod3<-omxSetParameters(subMod3, labels=c("am21","cm21","em21"), free=F, values=0)
+subMod3Fit <-mxTryHard(subMod3, intervals=T)
+(subMod3Summ <-summary(subMod3Fit))
+
+mxCompare(ModAceFit,subMod2Fit)
+mxCompare(ModAceFit,subMod3Fit)
+
+```
+
+```{r "nest-fit", include = T, echo = T, eval = T}
+
+(Nested.fit <- 	rbind	(
+			mxCompare(ModAceFit, NoModFit) [1,],
+			mxCompare(ModAceFit, NoModFit) [2,],
+			mxCompare(ModAceFit, subMod2Fit) [2,],
+			mxCompare(ModAceFit, subMod3Fit) [2,]))
+
+#(nestfit2 <- rbind (
+#  mxCompare(ModAceFit, subMod2Fit) [1,],
+#  mxCompare(ModAceFit, subMod2Fit) [2,],
+#  mxCompare(ModAceFit, subMod3Fit) [2,],
+#  mxCompare(subMod2Fit, NoModFit) [2,],
+#  mxCompare(subMod3Fit, NoModFit) [2,]
+#))
+
+mxCompare(ModAceFit, NoModFit)
+mxCompare(ModAceFit, subMod2Fit)
+mxCompare(subMod2Fit, NoModFit)
+
+```
+
+```{r "save model output - v1", eval = F, include = F, echo = F}
+
+(GxEpar <- ModAceSum$parameters)
+(GxECID <- ModAceSum$CI)
+(GxEVars <- round(ModAceFit$Vars@result,4))
+
+setwd("~/OneDrive - King's College London/PhD/CoTASS/Dta/150621")
+
+write.csv(GxEpar, "bivGxE-SoL-dep-par.csv",quote=T)
+write.csv(GxECID, "bivGxE-SoL-dep-cid.csv",quote=T)
+write.csv(GxEVars, "bivGxE-SoL-dep-vars.csv",quote=T)
+
+(Nomodpar <- NoModSumm$parameters)
+(NomodCID <- NoModSumm$CI)
+(NomodVars <- round(NoModFit$Vars@result,4))
+(mxcomp<-mxCompare(ModAceFit,NoModFit))
+
+write.csv(Nomodpar, "bivnomod-SoL-dep-par.csv",quote=T)
+write.csv(NomodCID, "bivnomod-SoL-dep-cid.csv",quote=T)
+write.csv(NomodVars, "bivnomod-SoL-dep-vars.csv",quote=T)
+write.csv(mxcomp, "bivmxcomp-SoL-dep-vars.csv",quote=T)
+
+(smod2par <- subMod2Summ$parameters)
+(smod2CID <- subMod2Summ$CI)
+(mxcomp2<-mxCompare(ModAceFit,subMod2Fit))
+
+(smod3par <- subMod3Summ$parameters)
+(smod3CID <- subMod3Summ$CI)
+(mxcomp3<-mxCompare(ModAceFit,subMod3Fit))
+
+write.csv(smod2par, "bivsmod2-SoL-dep-par.csv",quote=T)
+write.csv(smod2CID, "bivsmod2-SoL-dep-cid.csv",quote=T)
+write.csv(mxcomp2, "bivmxcomp2-SoL-dep-vars.csv",quote=T)
+
+write.csv(smod3par, "bivsmod3-SoL-dep-par.csv",quote=T)
+write.csv(smod3CID, "bivsmod3-SoL-dep-cid.csv",quote=T)
+write.csv(mxcomp3, "bivmxcomp3-SoL-dep-vars.csv",quote=T)
+
+write.csv(Nested.fit,"bivmod-SoL-nest-fit.csv",quote=T)
+
+```
+
+# Plot interaction effects 
+```{r "plot interactions", include = T, echo = T, eval = T}
+
+## Assign estimated parameters to variables
+
+# path estimates
+a11	<- ModAceFit$a[1,1]@values
+a21 <- ModAceFit$a[2,1]@values
+a22 <- ModAceFit$a[2,2]@values
+c11	<- ModAceFit$c[1,1]@values
+c21 <- ModAceFit$c[2,1]@values
+c22 <- ModAceFit$c[2,2]@values
+e11	<- ModAceFit$e[1,1]@values
+e21 <- ModAceFit$e[2,1]@values
+e22 <- ModAceFit$e[2,2]@values
+
+# moderator terms 
+am21 <- ModAceFit$aMod[2,1]@values
+am22 <- ModAceFit$aMod[2,2]@values
+cm21 <- ModAceFit$cMod[2,1]@values
+cm22 <- ModAceFit$cMod[2,2]@values
+em21 <- ModAceFit$eMod[2,1]@values
+em22 <- ModAceFit$eMod[2,2]@values
+
+## Sort moderator values and save to vector
+modVal <- sort(unique(c(data$revSoLm1,data$revSoLm2)))
+
+Vam21 <- ((c(a21)+(c(modVal)*c(am21)))^2)
+Vam22 <- ((c(a22)+(c(modVal)*c(am22)))^2)
+Vcm21 <- ((c(c21)+(c(modVal)*c(cm21)))^2)
+Vcm22 <- ((c(c22)+(c(modVal)*c(cm22)))^2)
+Vem21 <- ((c(e21)+(c(modVal)*c(em21)))^2)
+Vem22 <- ((c(e22)+(c(modVal)*c(em22)))^2)
+
+#Vacov <-2* (0.5 * c(am) * (c(ap)+(c(modVal)*c(m_ap))) * (c(p)+(c(modVal)*c(m_p)))) # example from GxE MCoTS model
+#Vccov <-2* (c(cp)+(c(modVal)*c(m_cp)) * (c(p)+(c(modVal)*c(m_p))))
+
+Vacov <- 2*(c(a21)+(c(modVal)*c(am21)))
+Vccov <- 2*(c(c21)+(c(modVal)*c(cm21)))
+
+#Vt <- Vam21 + Vam22 + Vcm21 + Vcm22 + Vem21 + Vem22 
+#Vt <- Vam22 + Vam21 + Vcm22 + Vcm21 + Vem22 + Vem21 
+Vt <- Vam22 + Vam21 + Vcm22 + Vcm21 + Vem22 + Vem21 + Vacov + Vccov
+
+#varcomps <- as.matrix(cbind(Vam21,Vam22,Vcm21,Vcm22,Vem21,Vem22,Vt))
+varcomps <- as.matrix(cbind(Vam22,Vam21,Vcm22,Vcm21,Vem22,Vem21,Vt))
+head(varcomps)
+
+# Plot variance components as a function of the moderator
+# NB: Va = red, Vc = orange, Ve = blue, VaC = purple, VcC = yellow, VeC = green, Vt = black
+# NB: Va = red, VaC = orange, Vc = blue, VcC = purple, Ve = green, VeC = yellow, Vt = black
+matplot(
+  modVal,
+  varcomps,
+  type="l",
+  lwd=2,
+  lty=1,
+  las=1,
+  ylim=c(0,2),
+  #col=c("red","orange","blue","purple","yellow","green","black"),
+  col=c("red","orange","blue","purple","green","yellow","black"),
+  frame=FALSE,
+  main="Bivariate moderation of variance components: Depression",
+  xlab="Moderator: Standard of Living",
+  ylab="Variance Components"
+  
+)
+#legend("topright",legend=c("A21","A22","C21","C22","E21","E22", "Total variance"),col=c("red","orange","blue","purple","yellow","green","black"),lty=1)
+#legend("topright",legend=c("A22","A21","C22","C21","E22","E21","Total #variance"),col=c("red","orange","blue","purple","green","yellow","black"),lty=1)
+legend("topright",legend=c("Au","Ac","Cu","Cc","Eu","Ec","Total variance"),col=c("red","orange","blue","purple","green","yellow","black"),lty=1)
+
+```
+
+```{r "plot interactions 2", include = T, echo = T, eval = T}
+
+varcomps1 <- as.matrix(cbind(Vam22,Vcm22,Vem22,Vt))
+head(varcomps1)
+
+matplot(
+  modVal,
+  varcomps1,
+  type="l",
+  lwd=2,
+  lty=1,
+  las=1,
+  ylim=c(0,2),
+  col=c("red","blue","green","black"),
+  frame=FALSE,
+  main="Bivariate moderation of variance components: Depression",
+  xlab="Moderator (Standard of Living)",
+  ylab="Variance Components"
+  
+)
+legend("topright",legend=c("A22","C22","E22","Total variance"),col=c("red","blue","green","black"),lty=1)
+
+varcomps2 <- as.matrix(cbind(Vam21,Vcm21,Vem21,Vt))
+head(varcomps2)
+
+matplot(
+  modVal,
+  varcomps2,
+  type="l",
+  lwd=2,
+  lty=1,
+  las=1,
+  ylim=c(0,2),
+  col=c("orange","purple","yellow","black"),
+  frame=FALSE,
+  main="Bivariate moderation of variance components: Depression",
+  xlab="Moderator (Standard of Living)",
+  ylab="Variance Components"
+  
+)
+legend("topright",legend=c("A21","C21","E21","Total variance"),col=c("orange","purple","yellow","black"),lty=1)
+
+```
+
+```{r "plot interactions 3", include = T, echo = T, eval = T}
+
+Vt2 <- Vam22 + Vam21 + Vcm22 + Vcm21 + Vem22 + Vem21 
+
+varcomps3 <- as.matrix(cbind(Vam22,Vam21,Vcm22,Vcm21,Vem22,Vem21,Vt2))
+head(varcomps3)
+
+# Plot variance components as a function of the moderator
+# NB: Va = red, VaC = orange, Vc = blue, VcC = purple, Ve = green, VeC = yellow, Vt = black
+matplot(
+  modVal,
+  varcomps3,
+  type="l",
+  lwd=2,
+  lty=1,
+  las=1,
+  ylim=c(0,2),
+  col=c("red","orange","blue","purple","green","yellow","black"),
+  frame=FALSE,
+  main="Bivariate moderation of variance components: Depression",
+  xlab="Moderator (Standard of Living)",
+  ylab="Variance Components"
+  
+)
+legend("topright",legend=c("A22","A21","C22","C21","E22","E21","Total variance"),col=c("red","orange","blue","purple","green","yellow","black"),lty=1)
+
+```
