@@ -50,7 +50,7 @@ require(Hmisc)
 require(psych)
 #require(plyr)
 
-data = read.table(file = "~/OneDrive - King's College London/PhD/CoTASS/Dta/150621/dtw_wide_dep-SES.dat", header=T, sep = "\t", stringsAsFactors = F)
+data = read.table(file = "~/*****/dtw_wide_dep-SES.dat", header=T, sep = "\t", stringsAsFactors = F)
 
 #psych::describe(data)
 
