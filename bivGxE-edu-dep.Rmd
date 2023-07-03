@@ -354,8 +354,6 @@ mxCompare(subMod2Fit, NoModFit)
 (GxECID <- ModAceSum$CI)
 (GxEVars <- round(ModAceFit$Vars@result,4))
 
-setwd("~/OneDrive - King's College London/PhD/CoTASS/Dta/150621")
-
 write.csv(GxEpar, "bivGxE-edu-dep-par.csv",quote=T)
 write.csv(GxECID, "bivGxE-edu-dep-cid.csv",quote=T)
 write.csv(GxEVars, "bivGxE-edu-dep-vars.csv",quote=T)
